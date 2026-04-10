@@ -1,0 +1,915 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Voice Interface Bias Tester</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #f7f6f2;
+      --surface: #ffffff;
+      --border: #e2e1dc;
+      --text: #1a1a1a;
+      --muted: #6b6b6b;
+      --accent: #2d6ef6;
+      --accent-dark: #1a50c8;
+      --high: #c0392b;
+      --high-bg: #fdf0ef;
+      --medium: #d4840a;
+      --medium-bg: #fdf6e3;
+      --low: #1e8a4a;
+      --low-bg: #edf7f1;
+      --pass: #4a4a4a;
+      --pass-bg: #f0f0f0;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      font-size: 15px;
+      line-height: 1.5;
+    }
+
+    /* ── Header ── */
+    header {
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      padding: 18px 32px;
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+
+    .logo {
+      width: 36px;
+      height: 36px;
+      background: var(--accent);
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+
+    .logo svg { width: 20px; height: 20px; fill: white; }
+
+    .header-text h1 {
+      font-size: 17px;
+      font-weight: 700;
+      letter-spacing: -0.3px;
+    }
+
+    .header-text p {
+      font-size: 13px;
+      color: var(--muted);
+    }
+
+    .badge {
+      margin-left: auto;
+      background: #eef3fe;
+      color: var(--accent);
+      border: 1px solid #c5d5fb;
+      border-radius: 20px;
+      padding: 4px 12px;
+      font-size: 12px;
+      font-weight: 600;
+    }
+
+    /* ── Layout ── */
+    .main {
+      max-width: 980px;
+      margin: 0 auto;
+      padding: 32px 24px 80px;
+    }
+
+    .two-col {
+      display: grid;
+      grid-template-columns: 1fr 300px;
+      gap: 24px;
+      align-items: start;
+    }
+
+    /* ── Card ── */
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 24px;
+    }
+
+    .card-title {
+      font-size: 13px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.6px;
+      color: var(--muted);
+      margin-bottom: 14px;
+    }
+
+    /* ── Textarea ── */
+    textarea {
+      width: 100%;
+      min-height: 200px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 12px 14px;
+      font-size: 14px;
+      font-family: "SF Mono", "Fira Code", monospace;
+      resize: vertical;
+      color: var(--text);
+      background: #fafaf8;
+      outline: none;
+      transition: border-color 0.15s;
+    }
+
+    textarea:focus { border-color: var(--accent); background: #fff; }
+
+    .input-hint {
+      font-size: 12px;
+      color: var(--muted);
+      margin-top: 8px;
+    }
+
+    /* ── Accent Profiles ── */
+    .profile-list {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .profile-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      cursor: pointer;
+      padding: 10px;
+      border-radius: 8px;
+      border: 1px solid transparent;
+      transition: background 0.12s, border-color 0.12s;
+    }
+
+    .profile-item:hover { background: #f5f5f2; }
+
+    .profile-item.selected {
+      background: #eef3fe;
+      border-color: #c5d5fb;
+    }
+
+    .profile-item input[type="checkbox"] {
+      width: 16px;
+      height: 16px;
+      margin-top: 2px;
+      accent-color: var(--accent);
+      cursor: pointer;
+      flex-shrink: 0;
+    }
+
+    .profile-name {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text);
+      display: block;
+    }
+
+    .profile-desc {
+      font-size: 11px;
+      color: var(--muted);
+      display: block;
+      margin-top: 1px;
+    }
+
+    .select-all-btn {
+      background: none;
+      border: none;
+      color: var(--accent);
+      font-size: 12px;
+      cursor: pointer;
+      padding: 0;
+      margin-bottom: 10px;
+      display: block;
+      text-decoration: underline;
+    }
+
+    /* ── Run Button ── */
+    .run-row {
+      margin-top: 20px;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+
+    .btn-run {
+      background: var(--accent);
+      color: white;
+      border: none;
+      border-radius: 8px;
+      padding: 12px 28px;
+      font-size: 15px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.15s, transform 0.1s;
+      letter-spacing: -0.2px;
+    }
+
+    .btn-run:hover { background: var(--accent-dark); }
+    .btn-run:active { transform: scale(0.98); }
+    .btn-run:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+
+    .btn-clear {
+      background: none;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 12px 20px;
+      font-size: 14px;
+      color: var(--muted);
+      cursor: pointer;
+      transition: border-color 0.15s;
+    }
+
+    .btn-clear:hover { border-color: #aaa; color: var(--text); }
+
+    /* ── Results ── */
+    #results-section {
+      margin-top: 32px;
+      display: none;
+    }
+
+    .results-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 16px;
+    }
+
+    .results-title {
+      font-size: 18px;
+      font-weight: 700;
+      letter-spacing: -0.3px;
+    }
+
+    .results-meta {
+      font-size: 13px;
+      color: var(--muted);
+      margin-top: 2px;
+    }
+
+    .btn-export {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 9px 18px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      color: var(--text);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      transition: border-color 0.15s;
+    }
+
+    .btn-export:hover { border-color: var(--accent); color: var(--accent); }
+
+    /* ── Summary bar ── */
+    .summary-bar {
+      display: flex;
+      gap: 12px;
+      margin-bottom: 20px;
+      flex-wrap: wrap;
+    }
+
+    .summary-pill {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 16px;
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: 600;
+      border: 1px solid transparent;
+    }
+
+    .summary-pill .count { font-size: 22px; font-weight: 800; line-height: 1; }
+
+    .pill-high { background: var(--high-bg); color: var(--high); border-color: #f5c6c2; }
+    .pill-medium { background: var(--medium-bg); color: var(--medium); border-color: #f5dcaa; }
+    .pill-low { background: var(--low-bg); color: var(--low); border-color: #a8dfc0; }
+    .pill-pass { background: var(--pass-bg); color: var(--pass); border-color: #d4d4d4; }
+
+    /* ── Table ── */
+    .table-wrap {
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      overflow: hidden;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+    }
+
+    thead th {
+      background: #f5f4f0;
+      padding: 11px 14px;
+      text-align: left;
+      font-weight: 700;
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: var(--muted);
+      border-bottom: 1px solid var(--border);
+    }
+
+    tbody tr {
+      border-bottom: 1px solid #f0f0ec;
+      transition: background 0.1s;
+    }
+
+    tbody tr:last-child { border-bottom: none; }
+    tbody tr:hover { background: #fafaf8; }
+
+    td { padding: 12px 14px; vertical-align: top; }
+
+    .td-command {
+      font-family: "SF Mono", "Fira Code", monospace;
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text);
+    }
+
+    .td-profile {
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .severity-badge {
+      display: inline-block;
+      padding: 3px 9px;
+      border-radius: 20px;
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.4px;
+    }
+
+    .sev-high { background: var(--high-bg); color: var(--high); }
+    .sev-medium { background: var(--medium-bg); color: var(--medium); }
+    .sev-low { background: var(--low-bg); color: var(--low); }
+    .sev-pass { background: var(--pass-bg); color: var(--pass); }
+
+    .td-issue { font-size: 13px; color: #333; max-width: 240px; }
+    .td-suggestion { font-size: 12px; color: var(--muted); max-width: 220px; }
+
+    /* ── Empty / Error states ── */
+    .empty-state {
+      text-align: center;
+      padding: 48px 24px;
+      color: var(--muted);
+    }
+
+    .empty-state .icon { font-size: 36px; margin-bottom: 12px; }
+    .empty-state p { font-size: 14px; }
+
+    /* ── Disclaimer ── */
+    .disclaimer {
+      margin-top: 20px;
+      padding: 12px 16px;
+      background: #fef9ec;
+      border: 1px solid #f5e09a;
+      border-radius: 8px;
+      font-size: 12px;
+      color: #7a5c00;
+      line-height: 1.6;
+    }
+
+    @media (max-width: 700px) {
+      .two-col { grid-template-columns: 1fr; }
+      .badge { display: none; }
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="logo">
+    <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+      <path d="M12 1a4 4 0 0 1 4 4v7a4 4 0 0 1-8 0V5a4 4 0 0 1 4-4zm6.5 10a.5.5 0 0 1 .5.5A7 7 0 0 1 13 18.93V21h2a1 1 0 0 1 0 2H9a1 1 0 0 1 0-2h2v-2.07A7 7 0 0 1 5 11.5a.5.5 0 0 1 1 0 6 6 0 0 0 12 0 .5.5 0 0 1 .5-.5z"/>
+    </svg>
+  </div>
+  <div class="header-text">
+    <h1>Voice Interface Bias Tester</h1>
+    <p>Identify accent bias and clarity gaps before deployment</p>
+  </div>
+  <span class="badge">MVP · Text-mode</span>
+</header>
+
+<div class="main">
+  <div class="two-col">
+
+    <!-- Left: Input -->
+    <div>
+      <div class="card">
+        <div class="card-title">Voice Commands to Test</div>
+        <textarea id="commands-input" placeholder="Enter one command per line, e.g.:
+call support
+transfer funds
+check balance
+set a reminder for tomorrow
+cancel my subscription
+navigate to settings
+play my playlist
+show recent transactions"></textarea>
+        <p class="input-hint">Enter the commands your voice interface accepts. One per line. Up to 50 for MVP.</p>
+      </div>
+
+      <div class="run-row">
+        <button class="btn-run" id="run-btn" onclick="runAudit()">Run Bias Audit</button>
+        <button class="btn-clear" onclick="clearAll()">Clear</button>
+      </div>
+    </div>
+
+    <!-- Right: Accent profiles -->
+    <div class="card">
+      <div class="card-title">Accent Profiles</div>
+      <button class="select-all-btn" onclick="toggleAll()">Select all</button>
+      <div class="profile-list" id="profile-list">
+        <!-- populated by JS -->
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Results -->
+  <div id="results-section">
+    <div class="results-header">
+      <div>
+        <div class="results-title">Audit Report</div>
+        <div class="results-meta" id="results-meta"></div>
+      </div>
+      <button class="btn-export" onclick="exportCSV()">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        Export CSV
+      </button>
+    </div>
+
+    <div class="summary-bar" id="summary-bar"></div>
+
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Command</th>
+            <th>Profile</th>
+            <th>Severity</th>
+            <th>Issue</th>
+            <th>Suggestion</th>
+          </tr>
+        </thead>
+        <tbody id="results-body"></tbody>
+      </table>
+    </div>
+
+    <div class="disclaimer">
+      <strong>Note:</strong> Results are generated using rule-based phonetic pattern analysis, not a live speech-to-text engine. This is a proxy simulation — useful for surfacing likely gaps, not a substitute for real-user testing across accent groups. Treat High severity findings as priority items for your next usability round.
+    </div>
+  </div>
+</div>
+
+<script>
+// ── Accent Profile Definitions ──────────────────────────────────────────────
+
+const PROFILES = [
+  {
+    id: "south-asian",
+    name: "South Asian English",
+    desc: "Indian, Pakistani, Bangladeshi speakers",
+    rules: [
+      {
+        pattern: /\bw/gi,
+        type: "phoneme",
+        label: "W→V substitution",
+        severity: "high",
+        issue: "Words starting with /w/ may be heard as /v/ (e.g., 'what' → 'vat', 'will' → 'vil'). STT models trained on American English often misfire on this.",
+        fix: "Add /v/ homophones as alternate intents. Avoid commands where 'what' vs 'that' disambiguation is critical."
+      },
+      {
+        pattern: /\bth/gi,
+        type: "phoneme",
+        label: "TH→D/T substitution",
+        severity: "medium",
+        issue: "The /th/ sound is not native to most South Asian languages. It commonly shifts to /d/ or /t/, affecting 'this', 'the', 'that', 'three'.",
+        fix: "Avoid leading 'the/this/that' in commands where possible. Add variant intents with 'd' substitution."
+      },
+      {
+        pattern: /[aeiou]{2,}/gi,
+        type: "vowel",
+        label: "Vowel cluster stress shift",
+        severity: "low",
+        issue: "Stress patterns differ significantly. Vowel clusters may be given equal weight, altering rhythm-based recognition.",
+        fix: "Test with multiple stress patterns in your STT training data."
+      }
+    ],
+    riskWords: ["what","when","where","will","would","well","was","were","with","while","why","this","that","the","there","three","through","think","those"]
+  },
+  {
+    id: "east-asian",
+    name: "East Asian English",
+    desc: "Chinese, Japanese, Korean speakers",
+    rules: [
+      {
+        pattern: /[rl]/gi,
+        type: "phoneme",
+        label: "R/L confusion",
+        severity: "high",
+        issue: "R and L are not distinguished in many East Asian languages. 'Play', 'relay', 'recent', 'list' are high-risk.",
+        fix: "Avoid command pairs that differ only in R vs L (e.g., 'read list' vs 'real list'). Test both phoneme substitutions."
+      },
+      {
+        pattern: /[bcdfghjklmnpqrstvwxz]{2,}/gi,
+        type: "cluster",
+        label: "Consonant cluster reduction",
+        severity: "high",
+        issue: "Japanese and Korean phonology inserts vowels between consonants (e.g., 'transfer' → 'toransufaa'). Complex clusters cause significant STT confusion.",
+        fix: "Prefer commands with open syllable structure (consonant-vowel patterns). Reduce stacked consonants where possible."
+      },
+      {
+        pattern: /[ptk]$/gi,
+        type: "final",
+        label: "Word-final stop deletion",
+        severity: "medium",
+        issue: "Final /p/, /t/, /k/ are often unreleased or dropped entirely. 'Check', 'stop', 'skip', 'connect' are affected.",
+        fix: "Add intent variants without the final consonant. Use longer, more distinct command words."
+      }
+    ],
+    riskWords: ["list","last","recent","relay","read","load","relate","play","reply","recall","review","call","cancel","record","result","clear","close","collect"]
+  },
+  {
+    id: "aave",
+    name: "AAVE",
+    desc: "African American Vernacular English",
+    rules: [
+      {
+        pattern: /\bth/gi,
+        type: "phoneme",
+        label: "TH→D/F substitution",
+        severity: "high",
+        issue: "In AAVE, voiced /th/ shifts to /d/ ('this'→'dis', 'the'→'de') and voiceless /th/ shifts to /f/ ('think'→'fink', 'through'→'froo'). STT systems often fail to map these correctly.",
+        fix: "Add 'd' and 'f' variant intents for any command heavily reliant on 'the/this/that/through/think'."
+      },
+      {
+        pattern: /[ndst]{2}$/gi,
+        type: "cluster",
+        label: "Word-final cluster reduction",
+        severity: "medium",
+        issue: "Consonant clusters at word-ends are simplified: 'best' → 'bes', 'past' → 'pas', 'find' → 'fin'. Affects recognition of action words.",
+        fix: "Test commands with and without final consonants. Don't rely on word-final sounds for disambiguation."
+      },
+      {
+        pattern: /\b(is|are|am|was|were)\b/gi,
+        type: "grammar",
+        label: "Copula deletion",
+        severity: "low",
+        issue: "Auxiliary verbs are grammatically optional in AAVE ('She ready', 'I done'). Phrased commands relying on 'is/are' may be spoken without them.",
+        fix: "Accept command variations that omit auxiliary verbs. Expand intent matching to cover omitted forms."
+      }
+    ],
+    riskWords: ["this","that","the","there","three","through","think","those","them","then","best","past","find","send","last","fast","test","list","next","rest"]
+  },
+  {
+    id: "spanish",
+    name: "Spanish-influenced English",
+    desc: "Latin American & Spanish speakers",
+    rules: [
+      {
+        pattern: /\b(sp|st|sk|sm|sn|sw|sl)/gi,
+        type: "cluster",
+        label: "Epenthetic vowel before S-clusters",
+        severity: "high",
+        issue: "Spanish doesn't allow word-initial S+consonant clusters. Speakers add a vowel: 'stop'→'estop', 'skip'→'eskip', 'start'→'estar'.",
+        fix: "Avoid commands starting with sp/st/sk/sm/sl where possible. Add 'e'-prefixed variants to your intent model."
+      },
+      {
+        pattern: /[bv]/gi,
+        type: "phoneme",
+        label: "B/V merger",
+        severity: "medium",
+        issue: "Spanish does not distinguish /b/ and /v/. 'Volume', 'voice', 'verify' may be recognized as 'bolume', 'boice', 'berify'.",
+        fix: "Test all V-initial commands with B substitutions. Avoid command pairs that only differ in B vs V."
+      },
+      {
+        pattern: /[əʌ]/gi,
+        type: "vowel",
+        label: "Reduced vowel mismatch",
+        severity: "low",
+        issue: "Spanish has 5 pure vowels vs English's ~15. Unstressed 'schwa' sounds in English words are often pronounced as full vowels, affecting rhythm-based recognition.",
+        fix: "Include full-vowel pronunciations in STT training data for high-frequency commands."
+      }
+    ],
+    riskWords: ["stop","start","skip","speak","spell","store","step","voice","video","verify","volume","view","balance","subscribe","cancel","connect","second","support"]
+  },
+  {
+    id: "arabic",
+    name: "Arabic-influenced English",
+    desc: "Arabic-speaking regions",
+    rules: [
+      {
+        pattern: /p/gi,
+        type: "phoneme",
+        label: "P→B substitution",
+        severity: "high",
+        issue: "Arabic has no /p/ phoneme — it's replaced with /b/. 'Play'→'blay', 'pause'→'bause', 'password'→'bassword', 'pay'→'bay'.",
+        fix: "Avoid P-initial commands near critical actions. Add B-substituted variants to intent training."
+      },
+      {
+        pattern: /\bth/gi,
+        type: "phoneme",
+        label: "TH→D/T substitution",
+        severity: "high",
+        issue: "Arabic /th/ maps differently. Voiced /th/ → /d/ or /z/, voiceless /th/ → /t/ or /s'. 'Think'→'tink', 'the'→'ze', 'this'→'zis'.",
+        fix: "Add /d/, /t/, /z/, /s/ variant intents for TH-initial commands."
+      },
+      {
+        pattern: /[aeiou]{1}[^aeiou]/gi,
+        type: "vowel",
+        label: "Short vowel distinction issues",
+        severity: "low",
+        issue: "Arabic has only 3 vowel phonemes (long/short pairs). English's 10+ vowel contrasts cause confusion in minimal pairs like 'set/sit', 'bad/bed'.",
+        fix: "Avoid commands that rely on short vowel contrasts for disambiguation."
+      }
+    ],
+    riskWords: ["play","pause","pay","password","purchase","profile","private","preview","phone","photo","this","the","that","three","think","through","those","then","there"]
+  },
+  {
+    id: "west-african",
+    name: "West African English",
+    desc: "Nigerian, Ghanaian, and regional speakers",
+    rules: [
+      {
+        pattern: /[bcdfghjklmnpqrstvwxz]{2,}/gi,
+        type: "cluster",
+        label: "Consonant cluster epenthesis",
+        severity: "medium",
+        issue: "West African languages are typically CV-structured. Consonant clusters get vowels inserted: 'transcript'→'toranscript'. Syllable boundaries shift.",
+        fix: "Prefer short, open-syllable commands. Test cluster-heavy words with inserted vowels."
+      },
+      {
+        pattern: /\b\w{1,3}\b/gi,
+        type: "length",
+        label: "Short word stress equalization",
+        severity: "medium",
+        issue: "West African English is syllable-timed (not stress-timed). Short function words ('a', 'the', 'to', 'my') receive equal stress, altering the acoustic fingerprint of the whole command.",
+        fix: "Don't rely on function words to differentiate commands acoustically. Use content words as primary anchors."
+      },
+      {
+        pattern: /[ptk]$/gi,
+        type: "final",
+        label: "Final consonant devoicing",
+        severity: "low",
+        issue: "Word-final voiced stops may be devoiced or dropped. 'Add'→'at', 'log'→'lok'.",
+        fix: "Test final-consonant variations. Prefer commands ending in vowels or sonorants where possible."
+      }
+    ],
+    riskWords: ["transcript","translate","strength","splash","straight","spring","screen","script","my","a","to","the","of","add","log","grab","hub","web","job"]
+  },
+  {
+    id: "french",
+    name: "French-influenced English",
+    desc: "French-speaking regions",
+    rules: [
+      {
+        pattern: /\bh/gi,
+        type: "phoneme",
+        label: "H-dropping",
+        severity: "high",
+        issue: "French /h/ is silent. English /h/ is dropped: 'home'→'ome', 'help'→'elp', 'history'→'istory'. Commands starting with H risk misrecognition.",
+        fix: "Add h-dropped variants to intents. Avoid relying on H as a distinguishing onset."
+      },
+      {
+        pattern: /\bth/gi,
+        type: "phoneme",
+        label: "TH→D/Z/S substitution",
+        severity: "high",
+        issue: "French has no /th/ phoneme. It maps to /d/, /z/, or /s/: 'this'→'zis', 'the'→'ze', 'think'→'sink'.",
+        fix: "Add /d/, /z/, /s/ variants for any TH-initial command or TH-bearing keyword."
+      },
+      {
+        pattern: /[rl]/gi,
+        type: "phoneme",
+        label: "Uvular R distortion",
+        severity: "low",
+        issue: "French /r/ is uvular (back of throat). STT models trained on rhotic English may misparse R-containing words.",
+        fix: "Test R-heavy commands against French-accented recordings. Include French-accented audio in training data."
+      }
+    ],
+    riskWords: ["help","home","history","here","how","have","hello","her","his","him","this","that","the","there","three","through","think","those","read","record","recent","remind","route","run"]
+  }
+];
+
+// ── State ────────────────────────────────────────────────────────────────────
+
+let lastResults = [];
+
+// ── Init ─────────────────────────────────────────────────────────────────────
+
+function init() {
+  const list = document.getElementById("profile-list");
+  PROFILES.forEach(p => {
+    const item = document.createElement("label");
+    item.className = "profile-item";
+    item.innerHTML = `
+      <input type="checkbox" id="chk-${p.id}" checked onchange="updateItemStyle(this)" />
+      <div>
+        <span class="profile-name">${p.name}</span>
+        <span class="profile-desc">${p.desc}</span>
+      </div>
+    `;
+    item.setAttribute("for", `chk-${p.id}`);
+    item.classList.add("selected");
+    list.appendChild(item);
+  });
+}
+
+function updateItemStyle(chk) {
+  const item = chk.closest(".profile-item");
+  if (chk.checked) item.classList.add("selected");
+  else item.classList.remove("selected");
+}
+
+function toggleAll() {
+  const checkboxes = document.querySelectorAll('#profile-list input[type="checkbox"]');
+  const allChecked = Array.from(checkboxes).every(c => c.checked);
+  checkboxes.forEach(c => {
+    c.checked = !allChecked;
+    updateItemStyle(c);
+  });
+  document.querySelector(".select-all-btn").textContent = allChecked ? "Select all" : "Deselect all";
+}
+
+// ── Analysis ─────────────────────────────────────────────────────────────────
+
+function analyzeCommand(command, profile) {
+  const cmd = command.trim().toLowerCase();
+  if (!cmd) return null;
+
+  const words = cmd.split(/\s+/);
+  const findings = [];
+
+  // Check rule-based patterns
+  profile.rules.forEach(rule => {
+    const matches = cmd.match(rule.pattern);
+    if (matches && matches.length > 0) {
+      findings.push({ rule, matchCount: matches.length });
+    }
+  });
+
+  // Check high-risk word list
+  const riskWordHits = words.filter(w => profile.riskWords.includes(w));
+
+  // Score severity
+  let severity = "pass";
+  let issue = "No significant bias patterns detected for this profile.";
+  let suggestion = "Command appears low-risk. Continue monitoring with real user testing.";
+
+  if (findings.length >= 2 || (findings.length === 1 && findings[0].rule.severity === "high" && riskWordHits.length > 0)) {
+    severity = "high";
+    const topRule = findings.sort((a, b) => severityScore(b.rule.severity) - severityScore(a.rule.severity))[0].rule;
+    issue = topRule.issue + (findings.length > 1 ? ` Additionally, ${findings.length - 1} other pattern(s) flagged.` : "");
+    suggestion = topRule.fix;
+  } else if (findings.length === 1) {
+    const rule = findings[0].rule;
+    severity = rule.severity;
+    issue = rule.issue;
+    suggestion = rule.fix;
+  } else if (riskWordHits.length > 0) {
+    severity = "low";
+    issue = `Contains potentially risky words for this profile: "${riskWordHits.join('", "')}". Phoneme overlap is possible.`;
+    suggestion = "Test this command in a usability session with speakers from this linguistic background.";
+  }
+
+  return { command, profile: profile.name, severity, issue, suggestion };
+}
+
+function severityScore(s) {
+  return s === "high" ? 3 : s === "medium" ? 2 : s === "low" ? 1 : 0;
+}
+
+// ── Run ───────────────────────────────────────────────────────────────────────
+
+function runAudit() {
+  const raw = document.getElementById("commands-input").value;
+  const commands = raw.split("\n").map(l => l.trim()).filter(Boolean).slice(0, 50);
+
+  if (commands.length === 0) {
+    alert("Please enter at least one voice command.");
+    return;
+  }
+
+  const selectedProfiles = PROFILES.filter(p =>
+    document.getElementById(`chk-${p.id}`)?.checked
+  );
+
+  if (selectedProfiles.length === 0) {
+    alert("Please select at least one accent profile.");
+    return;
+  }
+
+  const results = [];
+  commands.forEach(cmd => {
+    selectedProfiles.forEach(profile => {
+      const result = analyzeCommand(cmd, profile);
+      if (result) results.push(result);
+    });
+  });
+
+  lastResults = results;
+  renderResults(results, commands.length, selectedProfiles.length);
+}
+
+// ── Render ────────────────────────────────────────────────────────────────────
+
+function renderResults(results, cmdCount, profileCount) {
+  document.getElementById("results-section").style.display = "block";
+  document.getElementById("results-section").scrollIntoView({ behavior: "smooth", block: "start" });
+
+  const counts = { high: 0, medium: 0, low: 0, pass: 0 };
+  results.forEach(r => counts[r.severity]++);
+
+  document.getElementById("results-meta").textContent =
+    `${cmdCount} command${cmdCount !== 1 ? "s" : ""} × ${profileCount} profile${profileCount !== 1 ? "s" : ""} = ${results.length} combinations tested`;
+
+  // Summary bar
+  const bar = document.getElementById("summary-bar");
+  bar.innerHTML = `
+    <div class="summary-pill pill-high"><span class="count">${counts.high}</span> High</div>
+    <div class="summary-pill pill-medium"><span class="count">${counts.medium}</span> Medium</div>
+    <div class="summary-pill pill-low"><span class="count">${counts.low}</span> Low</div>
+    <div class="summary-pill pill-pass"><span class="count">${counts.pass}</span> Pass</div>
+  `;
+
+  // Sort: high → medium → low → pass
+  const order = { high: 0, medium: 1, low: 2, pass: 3 };
+  const sorted = [...results].sort((a, b) => order[a.severity] - order[b.severity]);
+
+  const tbody = document.getElementById("results-body");
+  if (sorted.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="5"><div class="empty-state"><div class="icon">✓</div><p>No issues found.</p></div></td></tr>`;
+    return;
+  }
+
+  tbody.innerHTML = sorted.map(r => `
+    <tr>
+      <td class="td-command">"${escHtml(r.command)}"</td>
+      <td class="td-profile">${escHtml(r.profile)}</td>
+      <td><span class="severity-badge sev-${r.severity}">${r.severity}</span></td>
+      <td class="td-issue">${escHtml(r.issue)}</td>
+      <td class="td-suggestion">${escHtml(r.suggestion)}</td>
+    </tr>
+  `).join("");
+}
+
+// ── Export CSV ────────────────────────────────────────────────────────────────
+
+function exportCSV() {
+  if (!lastResults.length) return;
+
+  const header = ["Command", "Profile", "Severity", "Issue", "Suggestion"];
+  const rows = lastResults.map(r => [
+    `"${r.command.replace(/"/g, '""')}"`,
+    `"${r.profile}"`,
+    r.severity,
+    `"${r.issue.replace(/"/g, '""')}"`,
+    `"${r.suggestion.replace(/"/g, '""')}"`
+  ].join(","));
+
+  const csv = [header.join(","), ...rows].join("\n");
+  const blob = new Blob([csv], { type: "text/csv" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `voice-bias-audit-${new Date().toISOString().slice(0,10)}.csv`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+// ── Helpers ───────────────────────────────────────────────────────────────────
+
+function clearAll() {
+  document.getElementById("commands-input").value = "";
+  document.getElementById("results-section").style.display = "none";
+  lastResults = [];
+}
+
+function escHtml(str) {
+  return str.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
+}
+
+// ── Boot ──────────────────────────────────────────────────────────────────────
+init();
+</script>
+</body>
+</html>
